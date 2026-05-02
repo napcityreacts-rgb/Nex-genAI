@@ -1,17 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAI() {
+  const apiKey = process.env.GEMINI_API_KEY || '';
+  return new GoogleGenAI({ apiKey });
+}
 
 export async function generateLearningContent(topic: string) {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Generate a comprehensive learning module for the topic: "${topic}". 
+    contents: `Generate a comprehensive learning module for the topic: "${topic}".
     The output should be a JSON object with:
     - title: A clear title.
     - content: Detailed educational content in Markdown format, structured for AI readability (clear headings, bullet points).
     - summary: A concise summary of the content.
     - flashcards: An array of objects with { question, answer } for spaced repetition.
-    
+
     Make the content high-quality and educational.`,
     config: {
       responseMimeType: "application/json",
@@ -42,6 +46,7 @@ export async function generateLearningContent(topic: string) {
 }
 
 export async function summarizeText(text: string) {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Summarize the following text concisely:\n\n${text}`,
