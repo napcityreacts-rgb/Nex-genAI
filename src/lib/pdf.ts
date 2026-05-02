@@ -1,7 +1,8 @@
 import { jsPDF } from "jspdf";
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { LearningModule } from "../types";
 
-export function generatePDF(module: LearningModule) {
+export async function generatePDF(module: LearningModule) {
   const doc = new jsPDF();
   const margin = 20;
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -74,5 +75,22 @@ export function generatePDF(module: LearningModule) {
     y += answerLines.length * 6 + 4;
   });
 
-  doc.save(`${module.title.replace(/\s+/g, '_')}_Learning_Module.pdf`);
+  // Get PDF as base64
+  const pdfOutput = doc.output('datauristring').split(',')[1];
+
+  // Save to external storage (SD card)
+  const fileName = `${module.title.replace(/\s+/g, '_')}_Learning_Module.pdf`;
+  try {
+    await Filesystem.writeFile({
+      path: `Download/${fileName}`,
+      data: pdfOutput,
+      directory: Directory.External,
+      encoding: Encoding.UTF8,
+    });
+    alert(`PDF saved to SD card: ${fileName}`);
+  } catch (error) {
+    console.error('Error saving PDF:', error);
+    // Fallback to browser download
+    doc.save(fileName);
+  }
 }
