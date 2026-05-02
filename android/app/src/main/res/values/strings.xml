@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nex-genAI</string>
+    <string name="title_activity_main">Nex-genAI</string>
+    <string name="package_name">com.nexusai.assistant</string>
+    <string name="custom_url_scheme">com.nexusai.assistant</string>
+</resources>

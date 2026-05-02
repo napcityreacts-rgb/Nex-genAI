@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -300,12 +300,13 @@ export default function App() {
                 </div>
 
                 <Tabs defaultValue="content" className="space-y-6">
-                  <ScrollArea className="w-full pb-2" orientation="horizontal">
+                  <ScrollArea className="w-full pb-2">
                     <TabsList className="bg-secondary border border-primary/20 p-1 w-full justify-start rounded-none min-w-max">
                       <TabsTrigger value="content" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[100px]">PATH</TabsTrigger>
-                      <TabsTrigger value="flashcards" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px]">NODES</TabsTrigger>
+                      <TabsTrigger value="flashcards" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:text-primary-foreground min-w-[120px]">NODES</TabsTrigger>
                       <TabsTrigger value="summary" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px]">SUMMARY</TabsTrigger>
                     </TabsList>
+                    <ScrollBar orientation="horizontal" />
                   </ScrollArea>
                   
                   <TabsContent value="content" className="mt-4 focus-visible:outline-none">
