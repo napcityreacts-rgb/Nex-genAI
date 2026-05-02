@@ -5,10 +5,16 @@ function getAI() {
   return new GoogleGenAI({ apiKey });
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
 export async function generateLearningContent(topic: string) {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.0-flash",
     contents: `Generate a comprehensive learning module for the topic: "${topic}".
     The output should be a JSON object with:
     - title: A clear title.
@@ -45,10 +51,32 @@ export async function generateLearningContent(topic: string) {
   return JSON.parse(response.text);
 }
 
+export async function chatWithAI(messages: ChatMessage[]): Promise<string> {
+  const ai = getAI();
+
+  const systemPrompt = `You are NexGenAI, an advanced AI assistant built into a next-generation learning platform. You are helpful, knowledgeable, and concise. You specialize in education, science, technology, and general knowledge. You communicate in a clear, professional tone. Use markdown formatting when helpful. Keep responses focused and actionable.`;
+
+  const contents = [
+    { role: 'user' as const, parts: [{ text: systemPrompt }] },
+    { role: 'model' as const, parts: [{ text: 'Understood. I am NexGenAI, ready to assist with learning, research, and knowledge exploration. How can I help you today?' }] },
+    ...messages.map(m => ({
+      role: (m.role === 'user' ? 'user' : 'model') as 'user' | 'model',
+      parts: [{ text: m.content }]
+    }))
+  ];
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents,
+  });
+
+  return response.text || 'I apologize, but I was unable to generate a response. Please try again.';
+}
+
 export async function summarizeText(text: string) {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.0-flash",
     contents: `Summarize the following text concisely:\n\n${text}`,
   });
   return response.text;

@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { getAllModules, saveModule, deleteModule } from './lib/storage';
 import { LearningModule, Flashcard } from './types';
 import { updateSRS, getInitialFlashcard } from './lib/srs';
-import { generateLearningContent } from './lib/gemini';
+import { generateLearningContent, chatWithAI, type ChatMessage } from './lib/gemini';
 import { generatePDF } from './lib/pdf';
 import { webStudyEngine } from './lib/ai/WebStudyEngine';
 import { 
@@ -22,10 +22,15 @@ import {
   AlertCircle,
   Database,
   TerminalSquare,
-  ChevronLeft
+  ChevronLeft,
+  Send,
+  MessageSquare,
+  User,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -33,7 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 
-type Tab = 'library' | 'generate' | 'evaluate' | 'ai_console';
+type Tab = 'library' | 'generate' | 'evaluate' | 'chat';
 
 export default function App() {
   const [modules, setModules] = useState<LearningModule[]>([]);
@@ -46,11 +51,24 @@ export default function App() {
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('library');
+  const [activeTab, setActiveTab] = useState<Tab>('chat');
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     loadModules();
   }, []);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
 
   async function loadModules() {
     try {
@@ -83,7 +101,6 @@ export default function App() {
     setError(null);
     setGenerationStatus('Initializing engine...');
     try {
-      // Integrate AI WebStudyEngine first
       const taskId = webStudyEngine.addStudyTask(newTopic);
       await webStudyEngine.processTask(taskId, (status) => setGenerationStatus(status));
       
@@ -165,6 +182,60 @@ export default function App() {
     }
   }
 
+  async function handleSendChat() {
+    if (!chatInput.trim() || isChatLoading) return;
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: chatInput.trim(),
+      timestamp: Date.now(),
+    };
+    const updatedMessages = [...chatMessages, userMessage];
+    setChatMessages(updatedMessages);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      const response = await chatWithAI(updatedMessages);
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: response,
+        timestamp: Date.now(),
+      };
+      setChatMessages(prev => [...prev, assistantMessage]);
+    } catch (err: any) {
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: `Error: ${err.message || 'Failed to get response. Please try again.'}`,
+        timestamp: Date.now(),
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsChatLoading(false);
+      chatInputRef.current?.focus();
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendChat();
+    }
+  }
+
+  function clearChat() {
+    setChatMessages([]);
+  }
+
+  const getHeaderTitle = () => {
+    switch (activeTab) {
+      case 'library': return selectedModule ? selectedModule.title : 'ARCHIVE';
+      case 'generate': return 'INIT_SEQ';
+      case 'evaluate': return 'EVALUATE';
+      case 'chat': return 'NEXUS_AI';
+      default: return 'NEXGENAI';
+    }
+  };
+
   return (
     <div className="h-screen w-full bg-background text-foreground font-sans flex flex-col selection:bg-primary/30 selection:text-primary relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none opacity-5 bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_10px,transparent_10px,transparent_20px)] animate-[pulse_4s_ease-in-out_infinite]" />
@@ -181,9 +252,14 @@ export default function App() {
             <Sparkles size={18} />
           </div>
           <span className="font-bold text-lg tracking-widest uppercase text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)] truncate glitch-slight">
-            {activeTab === 'library' ? (selectedModule ? selectedModule.title : 'ARCHIVE') : activeTab === 'generate' ? 'INIT_SEQ' : activeTab === 'evaluate' ? 'EVALUATE' : 'AI_SYSTEM_CORE'}
+            {getHeaderTitle()}
           </span>
         </div>
+        {activeTab === 'chat' && chatMessages.length > 0 && (
+          <Button variant="ghost" size="icon" onClick={clearChat} className="text-muted-foreground hover:text-destructive rounded-none">
+            <Trash2 size={18} />
+          </Button>
+        )}
       </header>
 
       {/* Error Toast */}
@@ -205,6 +281,7 @@ export default function App() {
       </AnimatePresence>
 
       <main className="flex-1 overflow-hidden relative z-10 flex flex-col">
+        {/* LIBRARY TAB */}
         {activeTab === 'library' && !selectedModule && (
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -271,6 +348,7 @@ export default function App() {
           </motion.div>
         )}
 
+        {/* LIBRARY - Module Detail */}
         {activeTab === 'library' && selectedModule && (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -367,6 +445,7 @@ export default function App() {
           </motion.div>
         )}
 
+        {/* GENERATE TAB */}
         {activeTab === 'generate' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -411,6 +490,7 @@ export default function App() {
           </motion.div>
         )}
 
+        {/* EVALUATE TAB */}
         {activeTab === 'evaluate' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -450,93 +530,127 @@ export default function App() {
           </motion.div>
         )}
 
-        {activeTab === 'ai_console' && (
+        {/* CHAT TAB - AI Assistant */}
+        {activeTab === 'chat' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 max-w-4xl mx-auto w-full font-mono"
+            className="flex-1 flex flex-col h-full"
           >
-            <div className="flex items-center gap-4 mb-8 border-b border-primary/20 pb-4">
-              <Brain size={48} className="text-primary drop-shadow-[0_0_10px_rgba(255,0,0,0.8)]" />
-              <div>
-                <h2 className="text-2xl font-black uppercase text-primary tracking-widest glitch-slight">Advanced Learning Engine</h2>
-                <p className="text-xs text-primary/60">V3.1 SECURE KNOWLEDGE SUBSYSTEM ONLINE</p>
-              </div>
+            {/* Chat Messages */}
+            <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
+              {chatMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                  <div className="w-20 h-20 bg-primary/5 border-2 border-primary/30 rounded-none flex items-center justify-center mb-6 text-primary relative shadow-[0_0_20px_rgba(255,0,0,0.1)]">
+                    <MessageSquare size={40} className="drop-shadow-[0_0_10px_rgba(255,0,0,0.6)]" />
+                  </div>
+                  <h2 className="text-xl font-black uppercase tracking-widest mb-2 text-primary">NexGenAI Assistant</h2>
+                  <p className="text-xs font-mono text-primary/50 uppercase tracking-wider max-w-xs leading-relaxed">
+                    AI-POWERED CONVERSATIONAL INTERFACE READY. ASK ANYTHING.
+                  </p>
+                  <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm">
+                    {['Explain quantum computing', 'Help me study biology', 'Write a study plan for CS'].map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        onClick={() => { setChatInput(suggestion); chatInputRef.current?.focus(); }}
+                        className="text-left text-xs font-mono text-primary/60 border border-primary/15 bg-secondary/30 px-4 py-3 hover:border-primary/40 hover:text-primary/80 transition-all rounded-none"
+                      >
+                        &gt; {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 max-w-2xl mx-auto">
+                  <AnimatePresence>
+                    {chatMessages.map((msg, i) => (
+                      <motion.div
+                        key={msg.timestamp}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                      >
+                        <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center border ${
+                          msg.role === 'user' 
+                            ? 'bg-primary/10 border-primary/30 text-primary' 
+                            : 'bg-secondary border-primary/20 text-primary'
+                        }`}>
+                          {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                        </div>
+                        <div className={`max-w-[80%] ${msg.role === 'user' ? 'text-right' : ''}`}>
+                          <div className={`text-[9px] font-mono uppercase tracking-widest mb-1 ${
+                            msg.role === 'user' ? 'text-primary/50 text-right' : 'text-primary/40'
+                          }`}>
+                            {msg.role === 'user' ? 'YOU' : 'NEXGENAI'} &middot; {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </div>
+                          <div className={`inline-block text-left px-4 py-3 border ${
+                            msg.role === 'user'
+                              ? 'bg-primary/10 border-primary/30 text-foreground'
+                              : 'bg-secondary/50 border-primary/15 text-foreground/90'
+                          }`}>
+                            {msg.role === 'assistant' ? (
+                              <div className="prose prose-invert prose-neutral max-w-none text-sm prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-code:text-primary/80">
+                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                              </div>
+                            ) : (
+                              <p className="text-sm font-mono leading-relaxed">{msg.content}</p>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  
+                  {isChatLoading && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex gap-3"
+                    >
+                      <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border bg-secondary border-primary/20 text-primary">
+                        <Bot size={14} />
+                      </div>
+                      <div className="bg-secondary/50 border border-primary/15 px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Loader2 size={14} className="animate-spin text-primary" />
+                          <span className="text-xs font-mono text-primary/60 uppercase tracking-wider">Processing...</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                <CardHeader>
-                  <CardTitle className="text-primary text-sm tracking-widest uppercase">System Metrics</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {Object.entries(webStudyEngine.ale.getLearningStatistics()).map(([k, v]) => (
-                    <div key={k} className="flex justify-between items-center border-b border-primary/10 pb-2">
-                      <span className="text-xs text-primary/70">{k.toUpperCase()}</span>
-                      <span className="text-sm font-bold text-primary drop-shadow-sm">{typeof v === 'number' ? v.toFixed(3) : v}</span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <div className="space-y-6">
-                <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                  <CardHeader>
-                    <CardTitle className="text-primary text-sm tracking-widest uppercase">Active Learning Status</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-xs text-primary/70">STRATEGY</span>
-                      <span className="text-xs font-bold text-primary">HYBRID (BALD + CORE_SET)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-primary/70">BUDGET ALLOCATION</span>
-                      <div className="w-1/2 h-4 bg-background border border-primary/20 relative">
-                        <div className="absolute top-0 left-0 bottom-0 bg-primary/50" style={{ width: '85%' }}></div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-primary/70">KNOWLEDGE NODES</span>
-                      <span className="text-xs font-bold text-primary">{webStudyEngine.ale.KnowledgeGraph.getTotalNodes()} ENTITIES</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Button 
-                  onClick={() => {
-                    webStudyEngine.ale.startLearning();
-                    webStudyEngine.ale.forceLearningCycle();
-                    alert("Execute Learning Cycle: Updating knowledge nodes & embedding weights via PPO!");
-                  }}
-                  className="w-full bg-primary text-background font-black tracking-widest rounded-none shadow-[0_0_20px_rgba(255,0,0,0.4)]"
+            {/* Chat Input */}
+            <div className="border-t border-primary/20 bg-background/95 backdrop-blur-md p-3 shrink-0 pb-5">
+              <div className="max-w-2xl mx-auto flex gap-2 items-end">
+                <Textarea
+                  ref={chatInputRef}
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Message NexGenAI..."
+                  className="flex-1 min-h-[44px] max-h-[120px] bg-secondary/50 border-primary/20 rounded-none focus-visible:ring-primary/50 focus-visible:border-primary/50 font-mono text-sm resize-none px-4 py-3"
+                  rows={1}
+                  disabled={isChatLoading}
+                />
+                <Button
+                  onClick={handleSendChat}
+                  disabled={!chatInput.trim() || isChatLoading}
+                  className="h-[44px] w-[44px] p-0 bg-primary text-primary-foreground rounded-none shadow-[0_0_10px_rgba(255,0,0,0.3)] hover:bg-primary/90 shrink-0 disabled:opacity-30"
                 >
-                  <TerminalSquare size={16} className="mr-2" /> FORCE LEARNING CYCLE
+                  <Send size={18} />
                 </Button>
               </div>
             </div>
-
-            <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
-              <CardHeader>
-                <CardTitle className="text-primary text-sm tracking-widest uppercase">Cross-Domain Transfer Readiness</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {Object.entries(webStudyEngine.ale.TransferManager.getDomainFusionWeights()).map(([k, weight]) => (
-                    <div key={k} className="text-center p-3 border border-primary/10 bg-background/50">
-                      <div className="text-[10px] text-primary/60 mb-2 truncate">{k.replace('_', ' ')}</div>
-                      <div className="text-lg font-black text-primary">{(weight * 100).toFixed(0)}%</div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
           </motion.div>
         )}
       </main>
 
-      {/* Android Style Bottom Navigation */}
+      {/* Bottom Navigation */}
       <div className="bg-background/95 border-t border-primary/20 backdrop-blur-md z-50 fixed bottom-0 left-0 right-0 h-16 flex items-center justify-around pb-safe safe-area-bottom">
         <button 
           onClick={() => setActiveTab('library')}
@@ -547,11 +661,11 @@ export default function App() {
         </button>
 
         <button 
-          onClick={() => setActiveTab('ai_console')}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'ai_console' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
+          onClick={() => setActiveTab('chat')}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'chat' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
         >
-          <TerminalSquare size={20} className={activeTab === 'ai_console' ? 'animate-pulse' : ''} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">AI Core</span>
+          <MessageSquare size={20} className={activeTab === 'chat' ? 'animate-pulse' : ''} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Chat</span>
         </button>
         
         <button 
@@ -672,4 +786,3 @@ export default function App() {
     </div>
   );
 }
-
