@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getAllModules, saveModule, deleteModule } from './lib/storage';
 import { LearningModule, Flashcard } from './types';
 import { updateSRS, getInitialFlashcard } from './lib/srs';
-import { generateLearningContent, chatWithAI, type ChatMessage } from './lib/gemini';
+import { generateLearningContent, chatWithAI } from './lib/gemini';
 import { generatePDF } from './lib/pdf';
 import { webStudyEngine } from './lib/ai/WebStudyEngine';
+import { assistant, AssistantGoal, AssistantState } from './lib/ai/AutonomousAssistant';
 import { 
   Plus, 
   Search, 
@@ -23,22 +24,22 @@ import {
   Database,
   TerminalSquare,
   ChevronLeft,
-  Send,
+  Cpu,
+  Zap,
+  Target,
   MessageSquare,
-  User,
-  Bot
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 
-type Tab = 'library' | 'generate' | 'evaluate' | 'chat';
+type Tab = 'library' | 'generate' | 'evaluate' | 'ai_console' | 'assistant' | 'chat';
 
 export default function App() {
   const [modules, setModules] = useState<LearningModule[]>([]);
@@ -51,24 +52,11 @@ export default function App() {
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('chat');
-
-  // Chat state
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const [activeTab, setActiveTab] = useState<Tab>('library');
 
   useEffect(() => {
     loadModules();
   }, []);
-
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [chatMessages]);
 
   async function loadModules() {
     try {
@@ -94,6 +82,46 @@ export default function App() {
   }, [modules]);
 
   const [generationStatus, setGenerationStatus] = useState<string | null>(null);
+  const [assistantGoals, setAssistantGoals] = useState<AssistantGoal[]>([]);
+  const [newGoal, setNewGoal] = useState('');
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model', content: string }[]>([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [isChatting, setIsChatting] = useState(false);
+
+  useEffect(() => {
+    return assistant.subscribe(setAssistantGoals);
+  }, []);
+
+  async function handleCreateGoal() {
+    if (!newGoal.trim()) return;
+    const goalTitle = newGoal;
+    setNewGoal('');
+    await assistant.setGoal(goalTitle, "Autonomous research and knowledge synthesis initiated by User.");
+  }
+
+  async function handleSendMessage() {
+    if (!currentMessage.trim() || isChatting) return;
+    
+    const userMessage = currentMessage;
+    setCurrentMessage('');
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsChatting(true);
+    
+    try {
+      const history = chatMessages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.content }]
+      }));
+      
+      const response = await chatWithAI(history, userMessage);
+      setChatMessages(prev => [...prev, { role: 'model', content: response }]);
+    } catch (err) {
+      console.error("Chat failed", err);
+      setError("Failed to link with AI neural link.");
+    } finally {
+      setIsChatting(false);
+    }
+  }
 
   async function handleGenerate() {
     if (!newTopic.trim()) return;
@@ -101,6 +129,7 @@ export default function App() {
     setError(null);
     setGenerationStatus('Initializing engine...');
     try {
+      // Integrate AI WebStudyEngine first
       const taskId = webStudyEngine.addStudyTask(newTopic);
       await webStudyEngine.processTask(taskId, (status) => setGenerationStatus(status));
       
@@ -182,60 +211,6 @@ export default function App() {
     }
   }
 
-  async function handleSendChat() {
-    if (!chatInput.trim() || isChatLoading) return;
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: chatInput.trim(),
-      timestamp: Date.now(),
-    };
-    const updatedMessages = [...chatMessages, userMessage];
-    setChatMessages(updatedMessages);
-    setChatInput('');
-    setIsChatLoading(true);
-
-    try {
-      const response = await chatWithAI(updatedMessages);
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: response,
-        timestamp: Date.now(),
-      };
-      setChatMessages(prev => [...prev, assistantMessage]);
-    } catch (err: any) {
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: `Error: ${err.message || 'Failed to get response. Please try again.'}`,
-        timestamp: Date.now(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsChatLoading(false);
-      chatInputRef.current?.focus();
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendChat();
-    }
-  }
-
-  function clearChat() {
-    setChatMessages([]);
-  }
-
-  const getHeaderTitle = () => {
-    switch (activeTab) {
-      case 'library': return selectedModule ? selectedModule.title : 'ARCHIVE';
-      case 'generate': return 'INIT_SEQ';
-      case 'evaluate': return 'EVALUATE';
-      case 'chat': return 'NEXUS_AI';
-      default: return 'NEXGENAI';
-    }
-  };
-
   return (
     <div className="h-screen w-full bg-background text-foreground font-sans flex flex-col selection:bg-primary/30 selection:text-primary relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none opacity-5 bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_10px,transparent_10px,transparent_20px)] animate-[pulse_4s_ease-in-out_infinite]" />
@@ -252,14 +227,9 @@ export default function App() {
             <Sparkles size={18} />
           </div>
           <span className="font-bold text-lg tracking-widest uppercase text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)] truncate glitch-slight">
-            {getHeaderTitle()}
+            {activeTab === 'library' ? (selectedModule ? selectedModule.title : 'ARCHIVE') : activeTab === 'generate' ? 'INIT_SEQ' : activeTab === 'evaluate' ? 'EVALUATE' : activeTab === 'assistant' ? 'AUTONOMOUS_ENTITY' : activeTab === 'chat' ? 'NEURAL_LINK' : 'AI_SYSTEM_CORE'}
           </span>
         </div>
-        {activeTab === 'chat' && chatMessages.length > 0 && (
-          <Button variant="ghost" size="icon" onClick={clearChat} className="text-muted-foreground hover:text-destructive rounded-none">
-            <Trash2 size={18} />
-          </Button>
-        )}
       </header>
 
       {/* Error Toast */}
@@ -281,7 +251,6 @@ export default function App() {
       </AnimatePresence>
 
       <main className="flex-1 overflow-hidden relative z-10 flex flex-col">
-        {/* LIBRARY TAB */}
         {activeTab === 'library' && !selectedModule && (
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -348,7 +317,6 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* LIBRARY - Module Detail */}
         {activeTab === 'library' && selectedModule && (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -378,13 +346,12 @@ export default function App() {
                 </div>
 
                 <Tabs defaultValue="content" className="space-y-6">
-                  <ScrollArea className="w-full pb-2">
+                  <ScrollArea className="w-full pb-2" orientation="horizontal">
                     <TabsList className="bg-secondary border border-primary/20 p-1 w-full justify-start rounded-none min-w-max">
                       <TabsTrigger value="content" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[100px]">PATH</TabsTrigger>
-                      <TabsTrigger value="flashcards" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:text-primary-foreground min-w-[120px]">NODES</TabsTrigger>
+                      <TabsTrigger value="flashcards" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px]">NODES</TabsTrigger>
                       <TabsTrigger value="summary" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px]">SUMMARY</TabsTrigger>
                     </TabsList>
-                    <ScrollBar orientation="horizontal" />
                   </ScrollArea>
                   
                   <TabsContent value="content" className="mt-4 focus-visible:outline-none">
@@ -445,7 +412,6 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* GENERATE TAB */}
         {activeTab === 'generate' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -490,7 +456,6 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* EVALUATE TAB */}
         {activeTab === 'evaluate' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -530,127 +495,231 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* CHAT TAB - AI Assistant */}
-        {activeTab === 'chat' && (
+        {activeTab === 'assistant' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="flex-1 flex flex-col h-full"
+            className="flex-1 flex flex-col p-4 md:p-8 max-w-2xl mx-auto w-full pb-24 font-mono"
           >
-            {/* Chat Messages */}
-            <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
-              {chatMessages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                  <div className="w-20 h-20 bg-primary/5 border-2 border-primary/30 rounded-none flex items-center justify-center mb-6 text-primary relative shadow-[0_0_20px_rgba(255,0,0,0.1)]">
-                    <MessageSquare size={40} className="drop-shadow-[0_0_10px_rgba(255,0,0,0.6)]" />
-                  </div>
-                  <h2 className="text-xl font-black uppercase tracking-widest mb-2 text-primary">NexGenAI Assistant</h2>
-                  <p className="text-xs font-mono text-primary/50 uppercase tracking-wider max-w-xs leading-relaxed">
-                    AI-POWERED CONVERSATIONAL INTERFACE READY. ASK ANYTHING.
-                  </p>
-                  <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm">
-                    {['Explain quantum computing', 'Help me study biology', 'Write a study plan for CS'].map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        onClick={() => { setChatInput(suggestion); chatInputRef.current?.focus(); }}
-                        className="text-left text-xs font-mono text-primary/60 border border-primary/15 bg-secondary/30 px-4 py-3 hover:border-primary/40 hover:text-primary/80 transition-all rounded-none"
-                      >
-                        &gt; {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4 max-w-2xl mx-auto">
-                  <AnimatePresence>
-                    {chatMessages.map((msg, i) => (
-                      <motion.div
-                        key={msg.timestamp}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                      >
-                        <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center border ${
-                          msg.role === 'user' 
-                            ? 'bg-primary/10 border-primary/30 text-primary' 
-                            : 'bg-secondary border-primary/20 text-primary'
-                        }`}>
-                          {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
-                        </div>
-                        <div className={`max-w-[80%] ${msg.role === 'user' ? 'text-right' : ''}`}>
-                          <div className={`text-[9px] font-mono uppercase tracking-widest mb-1 ${
-                            msg.role === 'user' ? 'text-primary/50 text-right' : 'text-primary/40'
-                          }`}>
-                            {msg.role === 'user' ? 'YOU' : 'NEXGENAI'} &middot; {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </div>
-                          <div className={`inline-block text-left px-4 py-3 border ${
-                            msg.role === 'user'
-                              ? 'bg-primary/10 border-primary/30 text-foreground'
-                              : 'bg-secondary/50 border-primary/15 text-foreground/90'
-                          }`}>
-                            {msg.role === 'assistant' ? (
-                              <div className="prose prose-invert prose-neutral max-w-none text-sm prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-code:text-primary/80">
-                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                              </div>
-                            ) : (
-                              <p className="text-sm font-mono leading-relaxed">{msg.content}</p>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                  
-                  {isChatLoading && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex gap-3"
-                    >
-                      <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border bg-secondary border-primary/20 text-primary">
-                        <Bot size={14} />
-                      </div>
-                      <div className="bg-secondary/50 border border-primary/15 px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Loader2 size={14} className="animate-spin text-primary" />
-                          <span className="text-xs font-mono text-primary/60 uppercase tracking-wider">Processing...</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              )}
+            <div className="flex items-center gap-4 mb-8 border-b border-primary/20 pb-4">
+              <Cpu size={48} className="text-primary animate-pulse drop-shadow-[0_0_15px_rgba(255,0,0,0.8)]" />
+              <div>
+                <h2 className="text-2xl font-black uppercase text-primary tracking-widest glitch-pronounced">Autonomous Entity</h2>
+                <p className="text-xs text-primary/60">GOAL-DRIVEN KNOWLEDGE ACQUISITION MODULE</p>
+              </div>
             </div>
 
-            {/* Chat Input */}
-            <div className="border-t border-primary/20 bg-background/95 backdrop-blur-md p-3 shrink-0 pb-5">
-              <div className="max-w-2xl mx-auto flex gap-2 items-end">
-                <Textarea
-                  ref={chatInputRef}
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Message NexGenAI..."
-                  className="flex-1 min-h-[44px] max-h-[120px] bg-secondary/50 border-primary/20 rounded-none focus-visible:ring-primary/50 focus-visible:border-primary/50 font-mono text-sm resize-none px-4 py-3"
-                  rows={1}
-                  disabled={isChatLoading}
+            <div className="bg-secondary/30 p-4 border border-primary/20 mb-8 backdrop-blur-sm">
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="NEW OBJECTIVE..." 
+                  className="bg-background border-primary/30 rounded-none focus-visible:ring-primary h-12 text-sm uppercase"
+                  value={newGoal}
+                  onChange={(e) => setNewGoal(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateGoal()}
                 />
-                <Button
-                  onClick={handleSendChat}
-                  disabled={!chatInput.trim() || isChatLoading}
-                  className="h-[44px] w-[44px] p-0 bg-primary text-primary-foreground rounded-none shadow-[0_0_10px_rgba(255,0,0,0.3)] hover:bg-primary/90 shrink-0 disabled:opacity-30"
+                <Button onClick={handleCreateGoal} className="h-12 w-12 bg-primary text-background rounded-none shadow-[0_0_10px_rgba(255,0,0,0.3)]">
+                  <Zap size={20} />
+                </Button>
+              </div>
+              <p className="text-[10px] text-primary/40 mt-2">DEPLOY AGENT TO RESEARCH AND SYNTHESIZE DATA AUTONOMOUSLY.</p>
+            </div>
+
+            <ScrollArea className="flex-1">
+              <div className="space-y-6">
+                {assistantGoals.map((goal) => (
+                  <Card key={goal.id} className="bg-background/40 border-primary/10 rounded-none overflow-hidden hover:border-primary/40 transition-colors">
+                    <CardHeader className="p-4 bg-secondary/20">
+                      <div className="flex justify-between items-start mb-2">
+                        <Badge variant="outline" className={`rounded-none border-primary/50 text-[10px] font-black tracking-widest ${goal.state === AssistantState.COMPLETED ? 'bg-green-500/20 text-green-500 border-green-500/50' : 'bg-primary/20 text-primary'}`}>
+                          {AssistantState[goal.state]}
+                        </Badge>
+                        <span className="text-[10px] text-primary/30">{new Date(goal.createdAt).toLocaleTimeString()}</span>
+                      </div>
+                      <CardTitle className="text-base font-bold uppercase tracking-wider text-primary">{goal.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2">
+                      <div className="w-full h-1 bg-secondary mb-4 relative overflow-hidden">
+                        <motion.div 
+                          className="absolute inset-0 bg-primary shadow-[0_0_10px_rgba(255,0,0,0.8)]"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${goal.progress}%` }}
+                        />
+                      </div>
+                      <ul className="space-y-3">
+                        {goal.subtasks.map((task) => (
+                          <li key={task.id} className="flex items-center gap-3 text-xs">
+                            {task.state === AssistantState.COMPLETED ? (
+                              <Badge className="bg-green-500/50 p-0.5 rounded-full"><Target size={10} /></Badge>
+                            ) : task.state === AssistantState.WORKING ? (
+                              <Loader2 size={12} className="animate-spin text-primary" />
+                            ) : (
+                              <div className="w-3 h-3 border border-primary/30 rounded-full" />
+                            )}
+                            <span className={task.state === AssistantState.COMPLETED ? 'text-primary/40' : 'text-primary'}>
+                              {task.title}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </motion.div>
+        )}
+        {activeTab === 'chat' && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="flex-1 flex flex-col p-4 md:p-8 max-w-4xl mx-auto w-full pb-24 font-mono overflow-hidden"
+          >
+            <div className="flex items-center gap-4 mb-6 border-b border-primary/20 pb-4 shrink-0">
+              <MessageSquare size={32} className="text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.6)]" />
+              <div>
+                <h2 className="text-xl font-black uppercase text-primary tracking-widest">Neural Link</h2>
+                <p className="text-[10px] text-primary/60">ESTABLISHING DIRECT COGNITIVE INTERFACE...</p>
+              </div>
+            </div>
+
+            <ScrollArea className="flex-1 pr-4 mb-4">
+              <div className="space-y-4">
+                {chatMessages.length === 0 && (
+                  <div className="h-64 flex flex-col items-center justify-center text-center opacity-30 select-none">
+                    <Database size={64} className="mb-4" />
+                    <p className="text-xs uppercase tracking-[0.3em]">Neural buffer empty. Initiate transmission.</p>
+                  </div>
+                )}
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] p-4 rounded-none border ${msg.role === 'user' ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-secondary/40 border-primary/10 text-foreground'} shadow-lg relative`}>
+                      <div className="absolute top-0 right-0 w-4 h-4 bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_1px,transparent_1px,transparent_2px)] opacity-10" />
+                      <div className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-50">{msg.role === 'user' ? 'IDENT_USER' : 'SYSTEM_REPLY'}</div>
+                      <div className="text-sm prose prose-invert max-w-none prose-p:my-1 prose-headings:text-primary">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isChatting && (
+                  <div className="flex justify-start">
+                    <div className="bg-secondary/20 border border-primary/10 p-4 rounded-none flex items-center gap-3">
+                      <Loader2 size={16} className="animate-spin text-primary" />
+                      <span className="text-[10px] uppercase tracking-widest text-primary/60 animate-pulse">Processing neural input...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            <div className="bg-background border border-primary/30 p-2 flex gap-2 shrink-0 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+              <Input 
+                placeholder="TRANSMIT THOUGHT..." 
+                className="bg-secondary border-none rounded-none focus-visible:ring-0 text-sm h-12 uppercase"
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+              />
+              <Button 
+                onClick={handleSendMessage} 
+                disabled={isChatting || !currentMessage.trim()}
+                className="w-12 h-12 bg-primary text-background rounded-none shadow-[0_0_10px_rgba(255,0,0,0.3)] hover:bg-primary/90 shrink-0"
+              >
+                <Send size={20} />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+        {activeTab === 'ai_console' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 max-w-4xl mx-auto w-full font-mono"
+          >
+            <div className="flex items-center gap-4 mb-8 border-b border-primary/20 pb-4">
+              <Brain size={48} className="text-primary drop-shadow-[0_0_10px_rgba(255,0,0,0.8)]" />
+              <div>
+                <h2 className="text-2xl font-black uppercase text-primary tracking-widest glitch-slight">Advanced Learning Engine</h2>
+                <p className="text-xs text-primary/60">V3.1 SECURE KNOWLEDGE SUBSYSTEM ONLINE</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                <CardHeader>
+                  <CardTitle className="text-primary text-sm tracking-widest uppercase">System Metrics</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {Object.entries(webStudyEngine.ale.getLearningStatistics()).map(([k, v]) => (
+                    <div key={k} className="flex justify-between items-center border-b border-primary/10 pb-2">
+                      <span className="text-xs text-primary/70">{k.toUpperCase()}</span>
+                      <span className="text-sm font-bold text-primary drop-shadow-sm">{typeof v === 'number' ? v.toFixed(3) : v}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <div className="space-y-6">
+                <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                  <CardHeader>
+                    <CardTitle className="text-primary text-sm tracking-widest uppercase">Active Learning Status</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-primary/70">STRATEGY</span>
+                      <span className="text-xs font-bold text-primary">HYBRID (BALD + CORE_SET)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-primary/70">BUDGET ALLOCATION</span>
+                      <div className="w-1/2 h-4 bg-background border border-primary/20 relative">
+                        <div className="absolute top-0 left-0 bottom-0 bg-primary/50" style={{ width: '85%' }}></div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-primary/70">KNOWLEDGE NODES</span>
+                      <span className="text-xs font-bold text-primary">{webStudyEngine.ale.KnowledgeGraph.getTotalNodes()} ENTITIES</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Button 
+                  onClick={() => {
+                    webStudyEngine.ale.startLearning();
+                    webStudyEngine.ale.forceLearningCycle();
+                    alert("Execute Learning Cycle: Updating knowledge nodes & embedding weights via PPO!");
+                  }}
+                  className="w-full bg-primary text-background font-black tracking-widest rounded-none shadow-[0_0_20px_rgba(255,0,0,0.4)]"
                 >
-                  <Send size={18} />
+                  <TerminalSquare size={16} className="mr-2" /> FORCE LEARNING CYCLE
                 </Button>
               </div>
             </div>
+
+            <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
+              <CardHeader>
+                <CardTitle className="text-primary text-sm tracking-widest uppercase">Cross-Domain Transfer Readiness</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {Object.entries(webStudyEngine.ale.TransferManager.getDomainFusionWeights()).map(([k, weight]) => (
+                    <div key={k} className="text-center p-3 border border-primary/10 bg-background/50">
+                      <div className="text-[10px] text-primary/60 mb-2 truncate">{k.replace('_', ' ')}</div>
+                      <div className="text-lg font-black text-primary">{(weight * 100).toFixed(0)}%</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
           </motion.div>
         )}
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Android Style Bottom Navigation */}
       <div className="bg-background/95 border-t border-primary/20 backdrop-blur-md z-50 fixed bottom-0 left-0 right-0 h-16 flex items-center justify-around pb-safe safe-area-bottom">
         <button 
           onClick={() => setActiveTab('library')}
@@ -661,11 +730,27 @@ export default function App() {
         </button>
 
         <button 
+          onClick={() => setActiveTab('ai_console')}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'ai_console' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
+        >
+          <Cpu size={20} className={activeTab === 'ai_console' ? 'animate-pulse' : ''} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">AI Core</span>
+        </button>
+
+        <button 
           onClick={() => setActiveTab('chat')}
           className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'chat' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
         >
           <MessageSquare size={20} className={activeTab === 'chat' ? 'animate-pulse' : ''} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Chat</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest">Link</span>
+        </button>
+
+        <button 
+          onClick={() => setActiveTab('assistant')}
+          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'assistant' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
+        >
+          <Zap size={20} className={activeTab === 'assistant' ? 'animate-pulse' : ''} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Agent</span>
         </button>
         
         <button 
@@ -786,3 +871,4 @@ export default function App() {
     </div>
   );
 }
+

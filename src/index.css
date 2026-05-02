@@ -104,10 +104,21 @@
     animation: glitch-subtle 4s infinite;
   }
 
+  .glitch-pronounced {
+    animation: glitch-heavy 3s infinite;
+  }
+
   @keyframes glitch-subtle {
     0%, 92%, 96%, 100% { transform: translate(0); text-shadow: none; }
     93% { transform: translate(-1px, 1px); text-shadow: 2px 0 rgba(255,0,0,0.7), -2px 0 rgba(0,255,255,0.7); }
     94% { transform: translate(1px, -1px); text-shadow: none; }
     95% { transform: translate(0); text-shadow: -2px 0 rgba(255,0,0,0.7), 2px 0 rgba(0,255,255,0.7); }
+  }
+
+  @keyframes glitch-heavy {
+    0%, 80%, 84%, 88%, 92%, 100% { transform: translate(0); text-shadow: none; }
+    81% { transform: translate(-3px, 2px); text-shadow: 4px 0 rgba(255,0,0,0.9), -4px 0 rgba(0,255,255,0.9); }
+    85% { transform: translate(3px, -2px); text-shadow: -4px 0 rgba(255,0,0,0.9), 4px 0 rgba(0,255,255,0.9); }
+    89% { transform: translate(-1px, 3px); text-shadow: 2px 0 rgba(255,0,0,1), -2px 0 rgba(0,255,255,1); }
   }
 }

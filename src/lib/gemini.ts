@@ -81,3 +81,13 @@ export async function summarizeText(text: string) {
   });
   return response.text;
 }
+
+export async function chatWithAI(history: { role: 'user' | 'model', parts: { text: string }[] }[], message: string) {
+  const chat = ai.models.startChat({
+    model: "gemini-3-flash-preview",
+    history: history,
+  });
+  
+  const result = await chat.sendMessage(message);
+  return result.response.text();
+}
