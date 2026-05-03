@@ -212,23 +212,26 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen w-full bg-background text-foreground font-sans flex flex-col selection:bg-primary/30 selection:text-primary relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none opacity-5 bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_10px,transparent_10px,transparent_20px)] animate-[pulse_4s_ease-in-out_infinite]" />
+    <div className="h-screen w-full bg-transparent text-foreground font-sans flex flex-col selection:bg-primary/30 selection:text-primary relative overflow-hidden">
+      {/* Background elements moved to index.css for global application */}
       
       {/* Top App Bar */}
-      <header className="h-16 border-b border-primary/20 bg-background/90 backdrop-blur-md z-50 flex items-center justify-between px-4 shrink-0 shadow-[0_4px_20px_rgba(255,0,0,0.05)]">
-        <div className="flex items-center gap-2">
+      <header className="h-16 border-b border-white/10 bg-black/40 backdrop-blur-3xl z-50 flex items-center justify-between px-6 shrink-0 glass-shelf-glow">
+        <div className="flex items-center gap-4">
           {selectedModule && activeTab === 'library' && (
-            <Button variant="ghost" size="icon" onClick={() => setSelectedModule(null)} className="mr-2 text-primary hover:bg-primary/10 rounded-none">
-              <ChevronLeft size={24} />
-            </Button>
+            <button onClick={() => setSelectedModule(null)} className="text-primary hover:text-primary/70 transition-colors">
+              <ChevronLeft size={20} />
+            </button>
           )}
-          <div className="w-8 h-8 bg-primary rounded-none flex items-center justify-center text-primary-foreground shadow-[0_0_10px_rgba(255,0,0,0.6)]">
-            <Sparkles size={18} />
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-primary animate-pulse shadow-[0_0_8px_rgba(255,0,0,0.8)]" />
+            <span className="font-medium text-sm tracking-[0.3em] uppercase text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.3)] glitch-slight">
+              {activeTab === 'library' ? (selectedModule ? selectedModule.title : 'ARCHIVE') : activeTab === 'generate' ? 'INIT_SEQ' : activeTab === 'evaluate' ? 'EVALUATE' : activeTab === 'assistant' ? 'AUTONOMOUS_ENTITY' : activeTab === 'chat' ? 'NEURAL_LINK' : 'AI_SYSTEM_CORE'}
+            </span>
           </div>
-          <span className="font-bold text-lg tracking-widest uppercase text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)] truncate glitch-slight">
-            {activeTab === 'library' ? (selectedModule ? selectedModule.title : 'ARCHIVE') : activeTab === 'generate' ? 'INIT_SEQ' : activeTab === 'evaluate' ? 'EVALUATE' : activeTab === 'assistant' ? 'AUTONOMOUS_ENTITY' : activeTab === 'chat' ? 'NEURAL_LINK' : 'AI_SYSTEM_CORE'}
-          </span>
+        </div>
+        <div className="flex items-center gap-4">
+           <div className="text-[10px] font-mono text-primary/30 tracking-widest hidden sm:block">SYS_CLK: {new Date().toLocaleTimeString()}</div>
         </div>
       </header>
 
@@ -253,158 +256,139 @@ export default function App() {
       <main className="flex-1 overflow-hidden relative z-10 flex flex-col">
         {activeTab === 'library' && !selectedModule && (
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="flex-1 flex flex-col h-full"
           >
-            <div className="p-4 border-b border-primary/20 bg-background/50 backdrop-blur-sm">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/50" size={16} />
-                <Input 
-                  placeholder="QUERY RECORDS..." 
-                  className="w-full bg-secondary border border-primary/20 pl-10 h-12 rounded-none focus-visible:ring-primary/50 font-mono text-sm uppercase"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+            <div className="px-8 py-10">
+               <h2 className="text-4xl font-extralight uppercase tracking-[0.3em] text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] mb-10">Knowledge Archive</h2>
+               <div className="relative group max-w-xl">
+                 <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors" size={16} />
+                 <input 
+                   placeholder="SEARCH RECORDS..." 
+                   className="w-full bg-transparent border-b border-white/20 pl-8 pb-3 pt-2 rounded-none focus:outline-none focus:border-primary transition-all font-mono text-xs uppercase tracking-widest text-white/90"
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                 />
+               </div>
             </div>
             
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-3 pb-20">
+            <ScrollArea className="flex-1 px-8 pb-32">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <AnimatePresence mode="popLayout">
                   {filteredModules.map((module) => (
                     <motion.div
                       key={module.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="group"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group relative"
                     >
                       <div 
-                        className="p-4 bg-secondary/50 border border-primary/20 rounded-none transition-all cursor-pointer flex flex-col gap-2 hover:border-primary/50 hover:bg-secondary relative overflow-hidden"
+                        className="p-6 bg-white/[0.03] border border-white/10 rounded-none transition-all cursor-pointer flex flex-col gap-4 hover:bg-white/[0.08] hover:border-primary/30 glass-shelf-glow group"
                         onClick={() => setSelectedModule(module)}
                       >
-                        <div className="absolute top-0 right-0 w-8 h-8 bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_2px,transparent_2px,transparent_4px)] opacity-20 -mr-4 -mt-4 rotate-45" />
-                        
-                        <div className="flex justify-between items-start pr-4">
-                          <span className="font-bold text-base truncate uppercase tracking-widest text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.2)]">
+                        <div className="flex justify-between items-start">
+                          <span className="font-semibold text-sm uppercase tracking-[0.15em] text-white/90 group-hover:text-primary transition-colors">
                             {module.title}
                           </span>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleDelete(module.id); }}
-                            className="text-muted-foreground hover:text-destructive flex-shrink-0 p-2 -my-2 -mr-2"
+                            className="text-white/10 hover:text-destructive transition-colors"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-primary/60 font-mono uppercase">
-                          <span className="flex items-center gap-1.5"><BookOpen size={12} /> {module.flashcards.length} NODES</span>
-                          <span className="flex items-center gap-1.5"><Clock size={12} /> {new Date(module.createdAt).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-6 text-[9px] font-mono uppercase tracking-widest text-white/30">
+                          <span className="flex items-center gap-2"><div className="w-1 h-1 bg-primary/40 rounded-full" /> {module.flashcards.length} NODES</span>
+                          <span className="flex items-center gap-2 underline decoration-primary/20 underline-offset-4">{new Date(module.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                {filteredModules.length === 0 && (
-                  <div className="py-20 px-4 text-center flex flex-col items-center">
-                    <Database size={48} className="text-secondary-foreground opacity-20 mb-4" />
-                    <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">DATA ARCHIVE EMPTY</p>
-                  </div>
-                )}
               </div>
+              {filteredModules.length === 0 && (
+                <div className="py-20 text-center opacity-20">
+                  <Database size={40} className="mx-auto mb-4" />
+                  <p className="text-[10px] font-mono tracking-[0.4em]">ARCHIVE_NULL</p>
+                </div>
+              )}
             </ScrollArea>
           </motion.div>
         )}
 
         {activeTab === 'library' && selectedModule && (
           <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="flex-1 flex flex-col h-full bg-background"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-1 flex flex-col h-full"
           >
             <ScrollArea className="flex-1">
-              <div className="p-4 md:p-8 max-w-4xl mx-auto pb-24">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-primary/20">
-                  <div className="space-y-2">
-                    <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-widest text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.4)]">{selectedModule.title}</h1>
-                    <div className="flex items-center gap-3 text-xs sm:text-sm text-primary/70 font-mono">
-                      <span className="flex items-center gap-1"><History size={14} /> T-{new Date(selectedModule.updatedAt).getTime().toString().substr(-6)}</span>
-                      <span className="w-1.5 h-1.5 bg-primary/50 rotate-45" />
-                      <span className="flex items-center gap-1"><Layout size={14} /> {selectedModule.flashcards.length} NODES</span>
+              <div className="p-8 max-w-5xl mx-auto pb-32">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 pb-12 border-b border-white/5">
+                  <div className="space-y-4">
+                    <h1 className="text-5xl font-extralight uppercase tracking-[0.2em] text-primary/90 leading-tight">{selectedModule.title}</h1>
+                    <div className="flex items-center gap-8 text-[9px] text-white/30 font-mono tracking-[0.3em] uppercase">
+                      <span className="flex items-center gap-2 underline decoration-primary/20 underline-offset-4 pointer-events-none">ID_{selectedModule.id.substr(0, 8)}</span>
+                      <span className="flex items-center gap-2"><div className="w-1 h-1 bg-primary/40 rounded-full" /> {selectedModule.flashcards.length} DATA NODES</span>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline"
+                  <button 
                     onClick={() => generatePDF(selectedModule)}
-                    className="rounded-none shadow-sm border-primary/40 hover:bg-primary/10 text-primary font-bold uppercase tracking-wider w-full sm:w-auto"
+                    className="group relative px-8 py-3 overflow-hidden border border-white/10 transition-all hover:border-primary/50 self-start md:self-auto"
                   >
-                    <Download size={16} className="mr-2" />
-                    EXPORT
-                  </Button>
+                    <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform" />
+                    <span className="relative z-10 text-[10px] font-bold uppercase tracking-[0.3em] text-white/60 group-hover:text-primary transition-colors flex items-center gap-2">
+                       <Download size={12} /> EXPORT_DATA
+                    </span>
+                  </button>
                 </div>
 
-                <Tabs defaultValue="content" className="space-y-6">
-                  <ScrollArea className="w-full pb-2" orientation="horizontal">
-                    <TabsList className="bg-secondary border border-primary/20 p-1 w-full justify-start rounded-none min-w-max">
-                      <TabsTrigger value="content" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[100px]">PATH</TabsTrigger>
-                      <TabsTrigger value="flashcards" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px]">NODES</TabsTrigger>
-                      <TabsTrigger value="summary" className="rounded-none px-6 py-2 uppercase font-bold tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px]">SUMMARY</TabsTrigger>
-                    </TabsList>
-                  </ScrollArea>
+                <Tabs defaultValue="content" className="space-y-12">
+                  <TabsList className="bg-transparent border-b border-white/5 p-0 w-full justify-start rounded-none h-auto gap-12">
+                    <TabsTrigger value="content" className="rounded-none px-0 pb-4 uppercase font-bold tracking-[0.3em] text-[9px] data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary border-transparent border-b-2 transition-all">Research Path</TabsTrigger>
+                    <TabsTrigger value="flashcards" className="rounded-none px-0 pb-4 uppercase font-bold tracking-[0.3em] text-[9px] data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary border-transparent border-b-2 transition-all">Knowledge Nodes</TabsTrigger>
+                    <TabsTrigger value="summary" className="rounded-none px-0 pb-4 uppercase font-bold tracking-[0.3em] text-[9px] data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary border-transparent border-b-2 transition-all">Executive Summary</TabsTrigger>
+                  </TabsList>
                   
-                  <TabsContent value="content" className="mt-4 focus-visible:outline-none">
-                    <Card className="border-none shadow-none bg-transparent">
-                      <CardContent className="p-0">
-                        <div className="prose prose-invert prose-neutral max-w-none text-sm sm:text-base">
-                          <ReactMarkdown>{selectedModule.content}</ReactMarkdown>
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <TabsContent value="content" className="mt-0 focus-visible:outline-none">
+                    <div className="prose prose-invert prose-neutral max-w-4xl mx-auto">
+                      <ReactMarkdown>{selectedModule.content}</ReactMarkdown>
+                    </div>
                   </TabsContent>
 
-                  <TabsContent value="flashcards" className="mt-4 focus-visible:outline-none">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <TabsContent value="flashcards" className="mt-0 focus-visible:outline-none">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       {selectedModule.flashcards.map((card, i) => (
-                        <Card key={card.id} className="border border-primary/20 bg-secondary/80 shadow-[0_0_10px_rgba(0,0,0,0.5)] rounded-none relative overflow-hidden">
-                          <div className="absolute top-0 right-0 w-12 h-12 bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_2px,transparent_2px,transparent_4px)] opacity-20 -mr-6 -mt-6 rotate-45" />
-                          <CardHeader className="p-4 pb-2">
-                            <div className="flex justify-between items-center mb-2">
-                              <Badge variant="secondary" className="rounded-none border border-primary/30 bg-primary/10 text-[10px] font-bold uppercase tracking-widest text-primary">NODE_{i + 1}</Badge>
-                              <span className="text-[10px] text-primary/60 font-mono">
-                                {card.repetition > 0 ? `LVL ${card.repetition}` : 'NEW'}
-                              </span>
-                            </div>
-                            <CardTitle className="text-sm uppercase tracking-wide leading-snug text-foreground/90 font-mono">{card.question}</CardTitle>
-                          </CardHeader>
-                          <CardContent className="p-4 pt-2">
-                            <p className="text-xs sm:text-sm text-primary/70 leading-relaxed font-mono">{card.answer}</p>
-                          </CardContent>
-                          <CardFooter className="p-4 pt-2 border-t border-primary/10 text-[10px] text-primary/50 flex justify-between font-mono bg-background/50 mt-auto">
-                            <span>NEXT_REV: {new Date(card.nextReview).getTime().toString().substr(-6)}</span>
-                            <span className="text-primary font-bold tracking-widest shadow-[0_0_5px_rgba(255,0,0,0.2)]">[ACTIVE]</span>
-                          </CardFooter>
-                        </Card>
+                        <div key={card.id} className="group p-8 bg-white/[0.03] border border-white/10 hover:border-primary/40 transition-all flex flex-col gap-6 glass-shelf-glow">
+                          <div className="flex justify-between items-center text-[8px] font-mono tracking-[0.4em] uppercase text-white/40 group-hover:text-primary transition-colors">
+                            <span>NODE_DATA_{i + 1}</span>
+                            <span>{card.repetition > 0 ? `VERIFIED_L${card.repetition}` : 'UNVERIFIED'}</span>
+                          </div>
+                          <div className="space-y-4">
+                            <h3 className="text-sm font-semibold uppercase tracking-[0.1em] text-white leading-relaxed font-mono drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">{card.question}</h3>
+                            <div className="h-px bg-white/10 group-hover:bg-primary/20 transition-colors" />
+                            <p className="text-sm text-white/70 leading-relaxed font-normal">{card.answer}</p>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="summary" className="mt-4 focus-visible:outline-none">
-                    <Card className="border border-primary/20 shadow-sm bg-primary/5 rounded-none">
-                      <CardHeader className="p-4 border-b border-primary/10 bg-primary/10">
-                        <CardTitle className="flex items-center gap-2 text-primary font-mono text-sm uppercase tracking-widest">
-                          <TerminalSquare size={16} />
-                          EXEC_SUMMARY
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 sm:p-6">
-                        <p className="text-sm sm:text-base leading-relaxed text-foreground/80 font-mono">
-                          &gt; {selectedModule.summary}
-                          <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
-                        </p>
-                      </CardContent>
-                    </Card>
+                  <TabsContent value="summary" className="mt-0 focus-visible:outline-none">
+                    <div className="max-w-3xl mx-auto p-12 bg-white/[0.03] border border-white/10 relative overflow-hidden group glass-shelf-glow">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                         <TerminalSquare size={40} className="text-white" />
+                      </div>
+                      <p className="text-xl leading-loose text-white font-normal italic drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">
+                        "{selectedModule.summary}"
+                      </p>
+                      <div className="mt-8 flex items-center gap-4">
+                         <div className="w-8 h-px bg-primary" />
+                         <span className="text-[10px] font-mono tracking-[0.5em] uppercase text-primary font-bold">Final Synthesis</span>
+                      </div>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
@@ -414,82 +398,80 @@ export default function App() {
 
         {activeTab === 'generate' && (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="flex-1 flex flex-col p-4 md:p-8 h-full max-w-2xl mx-auto w-full justify-center pb-24"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex-1 flex flex-col px-8 py-20 h-full max-w-2xl mx-auto w-full justify-center pb-32"
           >
-            <div className="w-24 h-24 bg-primary/5 border border-primary/40 rounded-none shadow-[0_0_20px_rgba(255,0,0,0.15)] flex items-center justify-center mb-8 mx-auto text-primary relative">
-              <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,rgba(255,0,0,0.1)_8px,rgba(255,0,0,0.1)_16px)]" />
-              <TerminalSquare size={48} className="drop-shadow-[0_0_10px_rgba(255,0,0,0.8)] relative z-10" />
+            <div className="mb-16">
+               <h2 className="text-5xl font-extralight uppercase tracking-[0.4em] mb-4 text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">Initialize</h2>
+               <p className="text-white/40 font-mono text-[10px] uppercase tracking-[0.5em]">Input target parameters for data synthesis</p>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-widest mb-3 text-center text-primary drop-shadow-md">Init Sequence</h2>
-            <p className="text-primary/70 mb-8 leading-relaxed font-mono text-sm text-center">
-              INPUT TARGET PARAMETERS FOR DATA EXTRACTION
-            </p>
             
-            <div className="space-y-6 bg-secondary/30 p-6 border border-primary/20 backdrop-blur-sm">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-primary font-mono block">Target Identity</label>
+            <div className="glass-shelf-glow bg-white/[0.03] border border-white/10 p-12 space-y-12">
+              <div className="space-y-4 group">
                 <Input 
-                  placeholder="e.g. Immunology, Cybernetics..." 
+                  placeholder="RESEARCH TOPIC..." 
                   value={newTopic}
                   onChange={(e) => setNewTopic(e.target.value)}
-                  className="h-14 text-lg bg-background border-primary/30 rounded-none focus-visible:ring-primary font-mono uppercase"
+                  className="h-16 text-xl bg-transparent border-0 border-b border-white/20 rounded-none focus-visible:ring-0 focus:border-primary transition-all font-light uppercase tracking-widest !p-0 text-white"
                 />
               </div>
-              <Button 
+              <button 
                 onClick={handleGenerate} 
                 disabled={isGenerating || !newTopic.trim()} 
-                className="w-full h-14 bg-primary text-primary-foreground font-black uppercase tracking-widest text-lg rounded-none shadow-[0_0_15px_rgba(255,0,0,0.3)] hover:bg-primary/90"
+                className="group relative h-16 w-full flex items-center justify-center overflow-hidden border border-primary text-primary hover:text-black transition-all disabled:opacity-30 disabled:pointer-events-none"
               >
-                {isGenerating ? (
-                  <span className="flex items-center">
-                    <Loader2 className="mr-3 animate-spin" size={24} />
-                    {generationStatus || 'EXTRACTING...'}
-                  </span>
-                ) : (
-                  "EXECUTE"
-                )}
-              </Button>
+                <div className="absolute inset-0 bg-primary translate-y-full group-hover:translate-y-0 transition-transform" />
+                <span className="relative z-10 font-bold uppercase tracking-[0.4em] text-sm flex items-center gap-3">
+                  {isGenerating ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      {generationStatus || 'SYNTHESIZING...'}
+                    </>
+                  ) : (
+                    "Execute Extraction"
+                  )}
+                </span>
+              </button>
             </div>
           </motion.div>
         )}
 
         {activeTab === 'evaluate' && (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="flex-1 flex flex-col items-center justify-center p-4 h-full pb-24 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-1 flex flex-col items-center justify-center px-8 h-full pb-32 text-center"
           >
-            <div className="w-32 h-32 bg-primary/5 border-2 border-primary/40 rounded-none flex items-center justify-center mb-8 mx-auto text-primary relative shadow-[0_0_30px_rgba(255,0,0,0.15)] pulse-glow">
-              <Brain size={64} className="drop-shadow-[0_0_15px_rgba(255,0,0,0.8)]" />
-              {dueCardsCount > 0 && (
-                <div className="absolute -top-4 -right-4 w-12 h-12 bg-destructive border-2 border-background flex items-center justify-center text-destructive-foreground font-black text-xl shadow-lg">
-                  {dueCardsCount}
-                </div>
-              )}
+            <div className="relative mb-16">
+               <div className="absolute inset-0 blur-3xl bg-primary/10 rounded-full scale-150 animate-pulse" />
+               <Brain size={80} className="text-primary relative z-10 filter drop-shadow-[0_0_20px_rgba(255,0,0,0.6)]" />
+               {dueCardsCount > 0 && (
+                 <div className="absolute -top-6 -right-6 font-light text-6xl text-primary/20 select-none">
+                    {dueCardsCount.toString().padStart(2, '0')}
+                 </div>
+               )}
             </div>
             
-            <h2 className="text-3xl font-black uppercase tracking-widest mb-4 text-primary">System Evaluation</h2>
+            <h2 className="text-4xl font-extralight uppercase tracking-[0.3em] mb-4 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">Diagnostic</h2>
             
             {dueCardsCount > 0 ? (
-              <>
-                <p className="text-lg text-primary/80 font-mono mb-8 max-w-md uppercase">
-                  {dueCardsCount} DATA NODES REQUIRE RE-VERIFICATION
+              <div className="space-y-12">
+                <p className="text-[10px] text-white/60 font-mono max-w-xs mx-auto leading-relaxed uppercase tracking-[0.4em]">
+                  Relational inconsistency detected in {dueCardsCount} nodes. Re-verification required.
                 </p>
-                <Button 
+                <button 
                   onClick={startReview}
-                  className="h-16 px-12 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xl rounded-none shadow-[0_0_20px_rgba(255,0,0,0.4)] hover:bg-primary/90 transition-all hover:scale-105"
+                  className="relative px-12 py-4 group overflow-hidden border border-primary text-primary hover:text-black transition-all"
                 >
-                  START DIAGNOSTIC
-                </Button>
-              </>
+                  <div className="absolute inset-0 bg-primary translate-y-full group-hover:translate-y-0 transition-transform" />
+                  <span className="relative z-10 font-bold uppercase tracking-[0.5em] text-xs">Start Diagnostic</span>
+                </button>
+              </div>
             ) : (
-              <div className="bg-primary/10 border border-primary/20 p-6 max-w-md w-full">
-                <p className="text-primary font-mono uppercase tracking-widest">ALL SYSTEMS NOMINAL.</p>
-                <p className="text-sm text-primary/60 font-mono mt-2">NO DATA REQUIRES EVALUATION AT THIS TIME.</p>
+              <div className="space-y-4">
+                <p className="text-[10px] text-white/40 font-mono uppercase tracking-[0.5em]">Systems Operational</p>
+                <div className="w-1.5 h-1.5 bg-primary/80 mx-auto rotate-45 animate-pulse" />
               </div>
             )}
           </motion.div>
@@ -497,74 +479,88 @@ export default function App() {
 
         {activeTab === 'assistant' && (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="flex-1 flex flex-col p-4 md:p-8 max-w-2xl mx-auto w-full pb-24 font-mono"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-1 flex flex-col p-8 max-w-4xl mx-auto w-full pb-32 font-sans"
           >
-            <div className="flex items-center gap-4 mb-8 border-b border-primary/20 pb-4">
-              <Cpu size={48} className="text-primary animate-pulse drop-shadow-[0_0_15px_rgba(255,0,0,0.8)]" />
+            <div className="flex items-center gap-6 mb-16 border-b border-white/10 pb-8">
+              <div className="p-3 border border-primary/30 bg-primary/10 relative overflow-hidden">
+                <div className="absolute inset-0 bg-primary/5 animate-pulse" />
+                <Cpu size={32} className="text-primary relative z-10 shadow-[0_0_15px_rgba(255,0,0,0.5)]" />
+              </div>
               <div>
-                <h2 className="text-2xl font-black uppercase text-primary tracking-widest glitch-pronounced">Autonomous Entity</h2>
-                <p className="text-xs text-primary/60">GOAL-DRIVEN KNOWLEDGE ACQUISITION MODULE</p>
+                <h2 className="text-2xl font-extralight uppercase tracking-[0.3em] text-white">Autonomous Entity</h2>
+                <p className="text-[9px] font-mono text-white/40 tracking-[0.4em] uppercase mt-1">Goal-Driven Knowledge Acquisition Subsystem</p>
               </div>
             </div>
 
-            <div className="bg-secondary/30 p-4 border border-primary/20 mb-8 backdrop-blur-sm">
-              <div className="flex gap-2">
-                <Input 
-                  placeholder="NEW OBJECTIVE..." 
-                  className="bg-background border-primary/30 rounded-none focus-visible:ring-primary h-12 text-sm uppercase"
+            <div className="mb-16 max-w-xl glass-shelf-glow bg-white/[0.03] border border-white/10 p-6">
+              <div className="relative group">
+                <input 
+                  placeholder="NEW OBJECTIVE_DATA..." 
+                  className="w-full bg-transparent border-b border-white/20 pb-4 pt-2 rounded-none focus:outline-none focus:border-primary transition-all font-light uppercase tracking-[0.2em] text-sm text-white placeholder:text-white/20"
                   value={newGoal}
                   onChange={(e) => setNewGoal(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateGoal()}
                 />
-                <Button onClick={handleCreateGoal} className="h-12 w-12 bg-primary text-background rounded-none shadow-[0_0_10px_rgba(255,0,0,0.3)]">
-                  <Zap size={20} />
-                </Button>
+                <button 
+                  onClick={handleCreateGoal}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 text-primary/60 hover:text-primary transition-colors"
+                >
+                  <Zap size={18} />
+                </button>
               </div>
-              <p className="text-[10px] text-primary/40 mt-2">DEPLOY AGENT TO RESEARCH AND SYNTHESIZE DATA AUTONOMOUSLY.</p>
+              <p className="text-[8px] font-mono text-white/20 mt-3 uppercase tracking-[0.3em]">Deploy agent for autonomous research synthesis</p>
             </div>
 
             <ScrollArea className="flex-1">
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pr-4">
                 {assistantGoals.map((goal) => (
-                  <Card key={goal.id} className="bg-background/40 border-primary/10 rounded-none overflow-hidden hover:border-primary/40 transition-colors">
-                    <CardHeader className="p-4 bg-secondary/20">
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline" className={`rounded-none border-primary/50 text-[10px] font-black tracking-widest ${goal.state === AssistantState.COMPLETED ? 'bg-green-500/20 text-green-500 border-green-500/50' : 'bg-primary/20 text-primary'}`}>
-                          {AssistantState[goal.state]}
-                        </Badge>
-                        <span className="text-[10px] text-primary/30">{new Date(goal.createdAt).toLocaleTimeString()}</span>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    key={goal.id} 
+                    className="p-8 bg-white/[0.03] border border-white/10 hover:border-primary/40 transition-all space-y-8 glass-shelf-glow"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <div className="text-[8px] font-mono tracking-[0.4em] uppercase text-white/40">{goal.state === AssistantState.COMPLETED ? 'TASK_CLOSED' : 'TASK_ACTIVE'}</div>
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">{goal.title}</h3>
                       </div>
-                      <CardTitle className="text-base font-bold uppercase tracking-wider text-primary">{goal.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-2">
-                      <div className="w-full h-1 bg-secondary mb-4 relative overflow-hidden">
-                        <motion.div 
-                          className="absolute inset-0 bg-primary shadow-[0_0_10px_rgba(255,0,0,0.8)]"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${goal.progress}%` }}
-                        />
-                      </div>
-                      <ul className="space-y-3">
-                        {goal.subtasks.map((task) => (
-                          <li key={task.id} className="flex items-center gap-3 text-xs">
-                            {task.state === AssistantState.COMPLETED ? (
-                              <Badge className="bg-green-500/50 p-0.5 rounded-full"><Target size={10} /></Badge>
-                            ) : task.state === AssistantState.WORKING ? (
-                              <Loader2 size={12} className="animate-spin text-primary" />
-                            ) : (
-                              <div className="w-3 h-3 border border-primary/30 rounded-full" />
-                            )}
-                            <span className={task.state === AssistantState.COMPLETED ? 'text-primary/40' : 'text-primary'}>
-                              {task.title}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
+                      <div className="text-[9px] font-mono text-white/20">{new Date(goal.createdAt).toLocaleTimeString()}</div>
+                    </div>
+
+                    <div className="space-y-2">
+                       <div className="flex justify-between text-[9px] font-mono text-white/40 uppercase tracking-widest">
+                          <span>Progress</span>
+                          <span className="text-white">{goal.progress}%</span>
+                       </div>
+                       <div className="w-full h-1 bg-white/5 overflow-hidden">
+                          <motion.div 
+                            className="h-full bg-primary shadow-[0_0_10px_rgba(255,0,0,0.6)]"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${goal.progress}%` }}
+                          />
+                       </div>
+                    </div>
+
+                    <ul className="space-y-4">
+                      {goal.subtasks.map((task) => (
+                        <li key={task.id} className="flex items-center gap-4 text-[10px] font-mono tracking-wide uppercase text-white/60">
+                          {task.state === AssistantState.COMPLETED ? (
+                            <div className="w-1.5 h-1.5 bg-green-500/60 rounded-full shadow-[0_0_5px_rgba(34,197,94,0.4)]" />
+                          ) : task.state === AssistantState.WORKING ? (
+                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />
+                          ) : (
+                            <div className="w-1.5 h-1.5 border border-white/40 rounded-full" />
+                          )}
+                          <span className={task.state === AssistantState.COMPLETED ? 'text-white/20' : ''}>
+                            {task.title}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
                 ))}
               </div>
             </ScrollArea>
@@ -572,296 +568,299 @@ export default function App() {
         )}
         {activeTab === 'chat' && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="flex-1 flex flex-col p-4 md:p-8 max-w-4xl mx-auto w-full pb-24 font-mono overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-1 flex flex-col p-8 max-w-5xl mx-auto w-full pb-32 overflow-hidden"
           >
-            <div className="flex items-center gap-4 mb-6 border-b border-primary/20 pb-4 shrink-0">
-              <MessageSquare size={32} className="text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.6)]" />
-              <div>
-                <h2 className="text-xl font-black uppercase text-primary tracking-widest">Neural Link</h2>
-                <p className="text-[10px] text-primary/60">ESTABLISHING DIRECT COGNITIVE INTERFACE...</p>
+            <div className="flex items-center justify-between mb-12 border-b border-white/10 pb-8 shrink-0">
+              <div className="flex items-center gap-6">
+                <div className="w-10 h-10 border border-primary text-primary flex items-center justify-center relative overflow-hidden">
+                   <div className="absolute inset-0 bg-primary/10 animate-pulse" />
+                   <MessageSquare size={20} className="z-10 shadow-[0_0_10px_rgba(255,0,0,0.3)]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-extralight uppercase tracking-[0.3em] text-white">Neural Link</h2>
+                  <p className="text-[8px] font-mono text-white/30 tracking-[0.4em] uppercase mt-1">Status: Operational // Synchronized</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                 <div className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                 <div className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+                 <div className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
               </div>
             </div>
 
-            <ScrollArea className="flex-1 pr-4 mb-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 pr-6 mb-8">
+              <div className="space-y-10">
                 {chatMessages.length === 0 && (
-                  <div className="h-64 flex flex-col items-center justify-center text-center opacity-30 select-none">
-                    <Database size={64} className="mb-4" />
-                    <p className="text-xs uppercase tracking-[0.3em]">Neural buffer empty. Initiate transmission.</p>
+                  <div className="h-64 flex flex-col items-center justify-center text-center opacity-10 select-none grayscale">
+                    <Database size={48} className="mb-6 text-primary" />
+                    <p className="text-[10px] font-mono uppercase tracking-[0.5em] text-white">Cognitive buffer clear.</p>
                   </div>
                 )}
                 {chatMessages.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-4 rounded-none border ${msg.role === 'user' ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-secondary/40 border-primary/10 text-foreground'} shadow-lg relative`}>
-                      <div className="absolute top-0 right-0 w-4 h-4 bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_1px,transparent_1px,transparent_2px)] opacity-10" />
-                      <div className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-50">{msg.role === 'user' ? 'IDENT_USER' : 'SYSTEM_REPLY'}</div>
-                      <div className="text-sm prose prose-invert max-w-none prose-p:my-1 prose-headings:text-primary">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    key={i} 
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[75%] space-y-2 ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col`}>
+                      <div className="text-[8px] font-mono uppercase tracking-[0.3em] opacity-40 mb-1 text-white">
+                        {msg.role === 'user' ? 'ID_AUTH_USER' : 'ID_NEURAL_SYS'}
+                      </div>
+                      <div className={`p-6 rounded-none border glass-shelf-glow ${msg.role === 'user' ? 'bg-primary text-black font-semibold border-primary/50' : 'bg-white/[0.05] border-white/10 text-white/90 shadow-2xl'}`}>
+                        <div className="text-sm prose prose-neutral prose-invert max-w-none prose-p:my-0 font-normal leading-relaxed">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
                 {isChatting && (
                   <div className="flex justify-start">
-                    <div className="bg-secondary/20 border border-primary/10 p-4 rounded-none flex items-center gap-3">
-                      <Loader2 size={16} className="animate-spin text-primary" />
-                      <span className="text-[10px] uppercase tracking-widest text-primary/60 animate-pulse">Processing neural input...</span>
+                    <div className="flex items-center gap-4 px-6 py-4 bg-white/[0.03] border border-white/10 glass-shelf-glow">
+                      <div className="flex gap-1">
+                        <span className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                        <span className="w-1 h-1 bg-primary rounded-full animate-pulse delay-75" />
+                        <span className="w-1 h-1 bg-primary rounded-full animate-pulse delay-150" />
+                      </div>
+                      <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/40">Synthesizing response...</span>
                     </div>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
-            <div className="bg-background border border-primary/30 p-2 flex gap-2 shrink-0 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-              <Input 
-                placeholder="TRANSMIT THOUGHT..." 
-                className="bg-secondary border-none rounded-none focus-visible:ring-0 text-sm h-12 uppercase"
+            <div className="relative group max-w-3xl mx-auto w-full glass-shelf-glow bg-white/[0.03] border border-white/10">
+              <input 
+                placeholder="TRANSMIT_THOUGHT..." 
+                className="w-full bg-transparent border-0 p-6 rounded-none focus:outline-none focus:bg-white/[0.05] transition-all font-light uppercase tracking-[0.2em] text-xs placeholder:text-white/20 text-white"
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
               />
-              <Button 
+              <button 
                 onClick={handleSendMessage} 
                 disabled={isChatting || !currentMessage.trim()}
-                className="w-12 h-12 bg-primary text-background rounded-none shadow-[0_0_10px_rgba(255,0,0,0.3)] hover:bg-primary/90 shrink-0"
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-primary/60 hover:text-primary transition-colors disabled:opacity-0"
               >
-                <Send size={20} />
-              </Button>
+                <Send size={18} />
+              </button>
             </div>
           </motion.div>
         )}
         {activeTab === 'ai_console' && (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 max-w-4xl mx-auto w-full font-mono"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-1 overflow-y-auto p-8 pb-32 max-w-5xl mx-auto w-full font-mono scale-[0.98]"
           >
-            <div className="flex items-center gap-4 mb-8 border-b border-primary/20 pb-4">
-              <Brain size={48} className="text-primary drop-shadow-[0_0_10px_rgba(255,0,0,0.8)]" />
+            <div className="flex items-center gap-6 mb-16 border-b border-white/10 pb-12">
+              <div className="relative">
+                <div className="absolute inset-0 blur-2xl bg-primary/20 rounded-full animate-pulse" />
+                <Brain size={48} className="text-primary relative z-10 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]" />
+              </div>
               <div>
-                <h2 className="text-2xl font-black uppercase text-primary tracking-widest glitch-slight">Advanced Learning Engine</h2>
-                <p className="text-xs text-primary/60">V3.1 SECURE KNOWLEDGE SUBSYSTEM ONLINE</p>
+                <h2 className="text-2xl font-light uppercase tracking-[0.4em] text-white">Core Interface</h2>
+                <p className="text-[10px] text-white/40 tracking-[0.3em] uppercase mt-2">Advanced Learning Subsystem // v3.1_Exclusive</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                <CardHeader>
-                  <CardTitle className="text-primary text-sm tracking-widest uppercase">System Metrics</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {Object.entries(webStudyEngine.ale.getLearningStatistics()).map(([k, v]) => (
-                    <div key={k} className="flex justify-between items-center border-b border-primary/10 pb-2">
-                      <span className="text-xs text-primary/70">{k.toUpperCase()}</span>
-                      <span className="text-sm font-bold text-primary drop-shadow-sm">{typeof v === 'number' ? v.toFixed(3) : v}</span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <div className="space-y-6">
-                <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                  <CardHeader>
-                    <CardTitle className="text-primary text-sm tracking-widest uppercase">Active Learning Status</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-xs text-primary/70">STRATEGY</span>
-                      <span className="text-xs font-bold text-primary">HYBRID (BALD + CORE_SET)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-primary/70">BUDGET ALLOCATION</span>
-                      <div className="w-1/2 h-4 bg-background border border-primary/20 relative">
-                        <div className="absolute top-0 left-0 bottom-0 bg-primary/50" style={{ width: '85%' }}></div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs text-primary/70">KNOWLEDGE NODES</span>
-                      <span className="text-xs font-bold text-primary">{webStudyEngine.ale.KnowledgeGraph.getTotalNodes()} ENTITIES</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Button 
-                  onClick={() => {
-                    webStudyEngine.ale.startLearning();
-                    webStudyEngine.ale.forceLearningCycle();
-                    alert("Execute Learning Cycle: Updating knowledge nodes & embedding weights via PPO!");
-                  }}
-                  className="w-full bg-primary text-background font-black tracking-widest rounded-none shadow-[0_0_20px_rgba(255,0,0,0.4)]"
-                >
-                  <TerminalSquare size={16} className="mr-2" /> FORCE LEARNING CYCLE
-                </Button>
-              </div>
-            </div>
-
-            <Card className="bg-secondary/40 border-primary/20 rounded-none shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
-              <CardHeader>
-                <CardTitle className="text-primary text-sm tracking-widest uppercase">Cross-Domain Transfer Readiness</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {Object.entries(webStudyEngine.ale.TransferManager.getDomainFusionWeights()).map(([k, weight]) => (
-                    <div key={k} className="text-center p-3 border border-primary/10 bg-background/50">
-                      <div className="text-[10px] text-primary/60 mb-2 truncate">{k.replace('_', ' ')}</div>
-                      <div className="text-lg font-black text-primary">{(weight * 100).toFixed(0)}%</div>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+              <div className="lg:col-span-4 space-y-10">
+                <div className="space-y-6">
+                   <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary border-l-2 border-primary pl-4 py-1">System Metrics</h3>
+                   <div className="space-y-6">
+                      {Object.entries(webStudyEngine.ale.getLearningStatistics()).map(([k, v]) => (
+                        <div key={k} className="flex flex-col gap-2">
+                          <span className="text-[9px] text-white/40 uppercase tracking-widest">{k.replace(/([A-Z])/g, '_$1').toUpperCase()}</span>
+                          <span className="text-lg font-light text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">{typeof v === 'number' ? v.toFixed(4) : v}</span>
+                        </div>
+                      ))}
+                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
+              <div className="lg:col-span-8 space-y-12">
+                <div className="p-8 bg-white/[0.03] border border-white/10 glass-shelf-glow space-y-8">
+                   <div className="flex justify-between items-center">
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40">Relational Fusion Weights</h3>
+                      <div className="text-[8px] font-mono text-primary animate-pulse">LIVE_SYNC</div>
+                   </div>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      {Object.entries(webStudyEngine.ale.TransferManager.getDomainFusionWeights()).map(([k, weight]) => (
+                        <div key={k} className="space-y-3">
+                          <div className="text-[9px] text-white/30 truncate uppercase tracking-widest">{k.replace('_', ' ')}</div>
+                          <div className="text-xl font-light text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.3)]">{(weight * 100).toFixed(1)}%</div>
+                          <div className="w-full h-1 bg-white/5">
+                             <div className="h-full bg-primary/60 shadow-[0_0_8px_rgba(255,0,0,0.4)]" style={{ width: `${weight * 100}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="p-8 border border-white/10 bg-white/[0.02] hover:border-primary/40 transition-all group glass-shelf-glow">
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                      <div className="space-y-2">
+                         <h3 className="text-sm font-light uppercase tracking-[0.2em] text-white group-hover:text-primary transition-colors">Neural Recalibration</h3>
+                         <p className="text-[9px] text-white/40 uppercase tracking-[0.3em]">Force immediate kernel weight updates</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          webStudyEngine.ale.startLearning();
+                          webStudyEngine.ale.forceLearningCycle();
+                        }}
+                        className="px-8 py-3 bg-primary text-black text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-primary/90 transition-all shadow-[0_0_15px_rgba(255,0,0,0.3)]"
+                      >
+                         Execute_Cycle
+                      </button>
+                   </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </main>
 
-      {/* Android Style Bottom Navigation */}
-      <div className="bg-background/95 border-t border-primary/20 backdrop-blur-md z-50 fixed bottom-0 left-0 right-0 h-16 flex items-center justify-around pb-safe safe-area-bottom">
-        <button 
-          onClick={() => setActiveTab('library')}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'library' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
-        >
-          <Database size={20} className={activeTab === 'library' ? 'animate-pulse' : ''} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Archive</span>
-        </button>
+      {/* Bottom Navigation */}
+      <div className="bg-white/[0.03] border-t border-white/10 backdrop-blur-3xl z-50 fixed bottom-0 left-0 right-0 h-20 flex items-center justify-around px-2 pb-safe glass-shelf-glow">
+        <nav className="flex items-center justify-around w-full max-w-lg mx-auto">
+          <button 
+            onClick={() => setActiveTab('library')}
+            className={`flex flex-col items-center gap-1.5 transition-all px-4 py-2 ${activeTab === 'library' ? 'text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]' : 'text-primary/30 hover:text-primary/50'}`}
+          >
+            <Database size={18} className={activeTab === 'library' ? 'shadow-[0_0_10px_rgba(255,0,0,0.5)]' : ''} />
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">Archive</span>
+          </button>
 
-        <button 
-          onClick={() => setActiveTab('ai_console')}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'ai_console' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
-        >
-          <Cpu size={20} className={activeTab === 'ai_console' ? 'animate-pulse' : ''} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">AI Core</span>
-        </button>
+          <button 
+            onClick={() => setActiveTab('chat')}
+            className={`flex flex-col items-center gap-1.5 transition-all px-4 py-2 ${activeTab === 'chat' ? 'text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]' : 'text-primary/30 hover:text-primary/50'}`}
+          >
+            <MessageSquare size={18} />
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">Link</span>
+          </button>
 
-        <button 
-          onClick={() => setActiveTab('chat')}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'chat' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
-        >
-          <MessageSquare size={20} className={activeTab === 'chat' ? 'animate-pulse' : ''} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Link</span>
-        </button>
+          <button 
+            onClick={() => setActiveTab('generate')}
+            className={`relative flex items-center justify-center w-12 h-12 rotate-45 border transition-all ${activeTab === 'generate' ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(255,0,0,0.3)] text-primary' : 'border-white/10 text-primary/30 hover:border-primary/40'}`}
+          >
+            <Plus size={24} className="-rotate-45" />
+          </button>
 
-        <button 
-          onClick={() => setActiveTab('assistant')}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${activeTab === 'assistant' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
-        >
-          <Zap size={20} className={activeTab === 'assistant' ? 'animate-pulse' : ''} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Agent</span>
-        </button>
-        
-        <button 
-          onClick={() => setActiveTab('generate')}
-          className="flex flex-col items-center justify-center px-4 -mt-6 z-10"
-        >
-          <div className={`w-14 h-14 border-2 flex items-center justify-center bg-background transform rotate-45 transition-all shadow-lg ${activeTab === 'generate' ? 'border-primary shadow-[0_0_15px_rgba(255,0,0,0.5)] text-primary' : 'border-primary/40 text-primary/60 hover:text-primary/80'}`}>
-            <Plus size={28} className="-rotate-45" />
-          </div>
-        </button>
-        
-        <button 
-          onClick={() => setActiveTab('evaluate')}
-          className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all relative ${activeTab === 'evaluate' ? 'text-primary drop-shadow-[0_0_5px_rgba(255,0,0,0.5)]' : 'text-primary/40 hover:text-primary/70'}`}
-        >
-          <div className="relative">
-             <Brain size={20} className={activeTab === 'evaluate' ? 'animate-pulse' : ''} />
-             {dueCardsCount > 0 && (
-               <span className="absolute -top-1 -right-2 w-4 h-4 bg-destructive text-destructive-foreground text-[8px] font-black rounded-none flex items-center justify-center">
-                 {dueCardsCount}
-               </span>
-             )}
-          </div>
-          <span className="text-[9px] font-bold uppercase tracking-widest">Evaluate</span>
-        </button>
+          <button 
+            onClick={() => setActiveTab('assistant')}
+            className={`flex flex-col items-center gap-1.5 transition-all px-4 py-2 ${activeTab === 'assistant' ? 'text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]' : 'text-primary/30 hover:text-primary/50'}`}
+          >
+            <Zap size={18} />
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">Agent</span>
+          </button>
+
+          <button 
+            onClick={() => {
+                if (activeTab === 'evaluate') {
+                    setActiveTab('ai_console');
+                } else if (activeTab === 'ai_console') {
+                    setActiveTab('evaluate');
+                } else {
+                    setActiveTab('evaluate');
+                }
+            }}
+            className={`flex flex-col items-center gap-1.5 transition-all px-4 py-2 relative ${activeTab === 'evaluate' || activeTab === 'ai_console' ? 'text-primary drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]' : 'text-primary/30 hover:text-primary/50'}`}
+          >
+            <div className="relative">
+               {activeTab === 'ai_console' ? <Cpu size={18} /> : <Brain size={18} />}
+               {dueCardsCount > 0 && (
+                 <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-primary shadow-[0_0_5px_rgba(255,0,0,0.8)] rounded-full animate-pulse" />
+               )}
+            </div>
+            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">{activeTab === 'ai_console' ? 'Core' : 'Test'}</span>
+          </button>
+        </nav>
       </div>
 
       {/* Full-screen Review Overlay */}
       <AnimatePresence>
         {isReviewing && (
           <motion.div 
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] bg-background flex flex-col"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-3xl flex flex-col font-sans"
           >
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[repeating-linear-gradient(45deg,var(--color-primary),var(--color-primary)_20px,transparent_20px,transparent_40px)]" />
-            <div className="h-16 flex items-center justify-between px-4 border-b border-primary/30 bg-background/90 backdrop-blur-md z-10 shrink-0 shadow-[0_4px_20px_rgba(255,0,0,0.05)]">
+            <div className="absolute inset-0 pointer-events-none opacity-[0.02] bg-[radial-gradient(circle_at_center,var(--color-primary),transparent)]" />
+            <div className="h-24 flex items-center justify-between px-12 z-10 shrink-0">
                <button 
                 onClick={() => setIsReviewing(false)} 
-                className="p-2 text-destructive hover:bg-destructive/10 -ml-2"
+                className="text-white/20 hover:text-primary transition-colors flex items-center gap-4 text-[10px] font-mono uppercase tracking-[0.3em]"
               >
-                <XCircle size={24} />
+                <XCircle size={16} /> [Abort_Sequence]
               </button>
               
-              <div className="flex-1 flex justify-center items-center px-4 max-w-[200px]">
-                <div className="h-1.5 w-full bg-secondary border border-primary/20 overflow-hidden relative">
-                  <div 
-                    className="h-full bg-primary transition-all duration-300 ease-out" 
-                    style={{ width: `${((currentReviewIndex + 1) / reviewCards.length) * 100}%` }}
+              <div className="flex-1 flex justify-center items-center px-12 max-w-sm">
+                <div className="h-[2px] w-full bg-white/5 overflow-hidden relative">
+                  <motion.div 
+                    className="h-full bg-primary shadow-[0_0_10px_rgba(255,0,0,0.5)]" 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${((currentReviewIndex + 1) / reviewCards.length) * 100}%` }}
                   />
                 </div>
               </div>
               
-              <div className="text-xs font-mono text-primary font-bold tracking-widest whitespace-nowrap">
-                {currentReviewIndex + 1}/{reviewCards.length}
+              <div className="text-[10px] font-mono text-primary/40 font-bold tracking-[0.4em] uppercase">
+                Node {currentReviewIndex + 1} of {reviewCards.length}
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto flex flex-col items-center p-4 sm:p-6 bg-transparent relative z-10 pb-6">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-transparent relative z-10 max-w-5xl mx-auto w-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={reviewCards[currentReviewIndex].id + (showAnswer ? '-ans' : '-q')}
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 1.05, y: -20 }}
-                  className="w-full max-w-2xl flex-1 flex flex-col"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.02 }}
+                  className="w-full h-full flex flex-col items-center justify-center text-center space-y-16"
                 >
-                  <Card className="border border-primary/40 shadow-[0_0_30px_rgba(255,0,0,0.1)] bg-card flex-1 flex flex-col rounded-none overflow-hidden relative">
-                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-                    
-                    <CardHeader className="p-6 md:p-12 flex-1 flex flex-col items-center justify-center text-center">
-                      <Badge variant="outline" className="mb-6 rounded-none px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-primary border-primary/40 bg-primary/5">
-                        {showAnswer ? "[ DECRYPTED ANSWER ]" : "[ TARGET QUERY ]"}
-                      </Badge>
-                      <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wide leading-tight text-foreground drop-shadow-md">
-                        {showAnswer ? reviewCards[currentReviewIndex].answer : reviewCards[currentReviewIndex].question}
-                      </h3>
-                    </CardHeader>
-                    
-                    <div className="mt-auto p-4 md:p-6 pb-6 md:pb-12 bg-background/30 border-t border-primary/10">
-                      {!showAnswer ? (
-                        <Button 
-                          className="w-full h-16 text-lg font-bold uppercase tracking-widest rounded-none bg-primary text-primary-foreground shadow-[0_0_20px_rgba(255,0,0,0.3)] hover:bg-primary/90"
-                          onClick={() => setShowAnswer(true)}
-                        >
-                          Execute Decryption
-                          <ArrowRight size={20} className="ml-2" />
-                        </Button>
-                      ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 w-full">
-                          {[
-                            { q: 1, label: 'Fail', color: 'bg-destructive text-destructive-foreground border-destructive', desc: 'DATA CORRUPT' },
-                            { q: 3, label: 'Hard', color: 'bg-orange-500 text-white border-orange-500', desc: 'PARTIAL REC' },
-                            { q: 4, label: 'Good', color: 'bg-primary/80 text-primary-foreground border-primary', desc: 'SECTOR CLEAR' },
-                            { q: 5, label: 'Perfect', color: 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,0,0,0.5)] border-primary', desc: 'FLAWLESS EXEC' }
-                          ].map((btn) => (
-                            <Button
-                              key={btn.q}
-                              onClick={() => handleReviewScore(btn.q)}
-                              className={`${btn.color} border-2 hover:opacity-90 h-16 sm:h-20 flex flex-col items-center justify-center gap-0.5 md:gap-1 rounded-none transition-all hover:scale-[1.02] uppercase tracking-widest`}
-                            >
-                              <span className="text-xs sm:text-sm font-black">{btn.label}</span>
-                              <span className="text-[8px] sm:text-[9px] opacity-80 font-mono truncate max-w-full px-1">{btn.desc}</span>
-                            </Button>
-                          ))}
-                        </div>
-                      )}
+                  <div className="space-y-6">
+                    <div className="text-[9px] font-mono tracking-[0.5em] uppercase text-primary/30">
+                      {showAnswer ? "Decrypted_Knowledge" : "Target_Query"}
                     </div>
-                  </Card>
+                    <h3 className="text-4xl md:text-6xl font-extralight uppercase tracking-[0.1em] text-foreground/90 leading-tight">
+                      {showAnswer ? reviewCards[currentReviewIndex].answer : reviewCards[currentReviewIndex].question}
+                    </h3>
+                  </div>
+                  
+                  <div className="w-full max-w-2xl pt-12">
+                    {!showAnswer ? (
+                      <button 
+                        className="group relative px-16 py-5 overflow-hidden border border-primary/40 transition-all hover:border-primary"
+                        onClick={() => setShowAnswer(true)}
+                      >
+                        <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform" />
+                        <span className="relative z-10 text-primary font-bold uppercase tracking-[0.5em] text-xs">Execute Decryption</span>
+                      </button>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
+                        {[
+                          { q: 1, label: 'Abort', desc: 'DATA_INVALID' },
+                          { q: 3, label: 'Diff', desc: 'PARTIAL_SYNC' },
+                          { q: 4, label: 'Normal', desc: 'SYNCED' },
+                          { q: 5, label: 'Stable', desc: 'PERFECT' },
+                        ].map((btn) => (
+                          <button 
+                            key={btn.q}
+                            onClick={() => handleReviewScore(btn.q)}
+                            className="group p-6 border border-white/5 hover:border-primary/40 transition-all text-left bg-white/[0.01] hover:bg-primary/[0.03]"
+                          >
+                            <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40 group-hover:text-primary transition-colors mb-2">{btn.label}</div>
+                            <div className="text-[8px] font-mono tracking-[0.2em] text-white/10 uppercase group-hover:text-primary/40 transition-colors">{btn.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </div>

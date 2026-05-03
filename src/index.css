@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Orbitron", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --color-background: hsl(var(--background));
@@ -45,80 +45,160 @@
 @layer base {
   :root {
     --background: 0 0% 0%; 
-    --foreground: 0 100% 85%;
+    --foreground: 0 0% 100%; /* Pure white for maximum pop */
     
-    --card: 0 0% 5%;
-    --card-foreground: 0 100% 85%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 100%;
     
-    --popover: 0 0% 5%;
-    --popover-foreground: 0 100% 85%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 100%;
     
-    --primary: 0 100% 50%;
+    --primary: 0 100% 50%; /* Brighter red */
     --primary-foreground: 0 0% 0%;
     
     --secondary: 0 0% 10%; 
-    --secondary-foreground: 0 100% 50%;
+    --secondary-foreground: 0 100% 65%;
     
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 20% 50%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 85%; /* Brighter muted text for maximum pop */
     
-    --accent: 0 100% 15%;
-    --accent-foreground: 0 100% 50%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 100%;
     
     --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 0%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 0 50% 15%;
-    --input: 0 0% 8%;
-    --ring: 0 100% 50%;
+    --border: 0 0% 20%;
+    --input: 0 0% 10%;
+    --ring: 0 100% 55%;
     --radius: 0rem;
   }
 
+  /* Glass Shelf Effect Utilities */
+  .glass-shelf {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 1px 1px rgba(255, 255, 255, 0.05) inset;
+  }
+
+  .glass-shelf-glow {
+    position: relative;
+    box-shadow: 0 15px 35px -12px rgba(0, 0, 0, 0.8);
+  }
+
+  .glass-shelf-glow::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    filter: blur(1.5px);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-shelf-glow::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    z-index: 10;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/40 selection:text-white;
+    background-color: #030303;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(255, 255, 255, 0.03) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(255, 0, 0, 0.01) 0px, transparent 80%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    /* High-end Marble Texture Signature: Dual-tone veins with displacement */
+    background-image: 
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 1000 1000' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='veins'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0025' numOctaves='4' seed='99' /%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0' /%3E%3CfeDisplacementMap in='SourceGraphic' scale='200' /%3E%3C/filter%3E%3Cpath d='M-200,100 L1200,900 M1200,-200 L-200,800 M500,-100 L500,1100' stroke='rgba(255,255,255,0.08)' stroke-width='4' fill='none' filter='url(%23veins)' /%3E%3Cpath d='M0,0 Q500,500 1000,1000' stroke='rgba(255,255,255,0.04)' stroke-width='2' fill='none' filter='url(%23veins)' /%3E%3Cpath d='M1000,0 Q500,500 0,1000' stroke='rgba(255,0,0,0.03)' stroke-width='1.5' fill='none' filter='url(%23veins)' /%3E%3C/svg%3E");
+    opacity: 0.9;
+    pointer-events: none;
+    filter: contrast(1.5) brightness(1.1);
   }
 
   .prose h1 {
-    @apply text-3xl font-black uppercase tracking-widest text-primary mb-6 drop-shadow-[0_0_8px_rgba(255,0,0,0.5)];
-    animation: glitch-subtle 4s infinite;
+    @apply text-4xl font-extralight uppercase tracking-[0.25em] text-primary mb-8 drop-shadow-[0_0_20px_rgba(255,0,0,0.35)];
+    animation: glitch-subtle 8s infinite;
+    text-shadow: 0 0 12px rgba(255, 0, 0, 0.2);
   }
   
   .prose h2 {
-    @apply text-xl font-bold uppercase tracking-widest text-foreground mt-8 mb-4 border-b border-primary/30 pb-2;
-    animation: glitch-subtle 4s infinite;
+    @apply text-lg font-semibold uppercase tracking-[0.1em] text-foreground mt-10 mb-5 border-l-2 border-primary pl-4 py-1 bg-primary/5;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
   }
 
   .prose p {
-    @apply text-muted-foreground leading-relaxed mb-4 font-mono text-sm;
+    @apply text-white/90 leading-relaxed text-base font-normal mb-6;
+    letter-spacing: -0.01em;
+  }
+
+  .prose strong {
+    @apply text-white font-bold;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
   }
 
   .prose ul {
-    @apply list-disc pl-6 mb-4 space-y-2;
+    @apply list-none pl-0 mb-6 space-y-3;
   }
 
   .prose li {
-    @apply text-muted-foreground font-mono text-sm;
+    @apply text-white/80 text-sm flex items-start gap-4;
+  }
+
+  .prose li::before {
+    content: "—";
+    @apply text-primary font-bold;
+    text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+  }
+
+  /* Custom utility for popping text */
+  .text-pop {
+    text-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    filter: brightness(1.2);
   }
 
   .glitch-slight {
-    animation: glitch-subtle 4s infinite;
+    animation: glitch-subtle 6s infinite;
   }
 
   .glitch-pronounced {
-    animation: glitch-heavy 3s infinite;
+    animation: glitch-heavy 4s infinite;
   }
 
   @keyframes glitch-subtle {
-    0%, 92%, 96%, 100% { transform: translate(0); text-shadow: none; }
-    93% { transform: translate(-1px, 1px); text-shadow: 2px 0 rgba(255,0,0,0.7), -2px 0 rgba(0,255,255,0.7); }
-    94% { transform: translate(1px, -1px); text-shadow: none; }
-    95% { transform: translate(0); text-shadow: -2px 0 rgba(255,0,0,0.7), 2px 0 rgba(0,255,255,0.7); }
+    0%, 94%, 98%, 100% { transform: translate(0); text-shadow: none; opacity: 1; }
+    95% { transform: translate(-1px, 0.5px); text-shadow: 1px 0 rgba(255,0,0,0.4), -1px 0 rgba(0,255,255,0.4); opacity: 0.9; }
+    96% { transform: translate(1px, -0.5px); text-shadow: none; opacity: 1; }
+    97% { transform: translate(0); text-shadow: -1px 0 rgba(255,0,0,0.4), 1px 0 rgba(0,255,255,0.4); opacity: 0.95; }
   }
 
   @keyframes glitch-heavy {
-    0%, 80%, 84%, 88%, 92%, 100% { transform: translate(0); text-shadow: none; }
-    81% { transform: translate(-3px, 2px); text-shadow: 4px 0 rgba(255,0,0,0.9), -4px 0 rgba(0,255,255,0.9); }
-    85% { transform: translate(3px, -2px); text-shadow: -4px 0 rgba(255,0,0,0.9), 4px 0 rgba(0,255,255,0.9); }
-    89% { transform: translate(-1px, 3px); text-shadow: 2px 0 rgba(255,0,0,1), -2px 0 rgba(0,255,255,1); }
+    0%, 75%, 79%, 83%, 87%, 100% { transform: translate(0); text-shadow: none; filter: hue-rotate(0deg); }
+    76% { transform: translate(-2px, 1px); text-shadow: 3px 0 rgba(255,0,0,0.8), -3px 0 rgba(0,255,255,0.8); filter: hue-rotate(45deg); }
+    80% { transform: translate(2px, -1px); text-shadow: -3px 0 rgba(255,0,0,0.8), 3px 0 rgba(0,255,255,0.8); }
+    84% { transform: translate(-1px, 2px); text-shadow: 1px 0 rgba(255,0,0,1), -1px 0 rgba(0,255,255,1); filter: hue-rotate(-45deg); }
   }
 }
