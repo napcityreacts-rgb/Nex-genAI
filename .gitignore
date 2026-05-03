@@ -13,3 +13,6 @@ android/app/build/
 android/build/
 android/.gradle/
 android/capacitor-cordova-android-plugins/build/
+Nex-genAI/
+nexgenai/
+source-repo/
